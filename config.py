@@ -1,4 +1,4 @@
-lis"""
+"""
 Configuration settings for the FTR Draft Generator Agent.
 """
 
