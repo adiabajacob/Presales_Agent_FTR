@@ -16,9 +16,6 @@ from config import (
     BEDROCK_MODEL_ID,
 )
 
-
-# Timeout for MCP client initialization (seconds)
-# Increased to 120s to allow time for browser-based OAuth flow
 MCP_STARTUP_TIMEOUT = 120
 
 
@@ -43,7 +40,7 @@ def create_atlassian_mcp_client() -> MCPClient:
                 args=MCP_REMOTE_ARGS,
             )
         ),
-        # Increase timeout to allow for OAuth browser authentication
+       
         startup_timeout=MCP_STARTUP_TIMEOUT,
     )
 
@@ -61,7 +58,7 @@ def create_ftr_agent(mcp_client: MCPClient | None = None) -> Agent:
     if mcp_client is None:
         mcp_client = create_atlassian_mcp_client()
     
-    # Create agent with MCP client - lifecycle managed automatically
+    
     agent = Agent(
         model=BEDROCK_MODEL_ID,
         system_prompt=FTR_AGENT_SYSTEM_PROMPT,

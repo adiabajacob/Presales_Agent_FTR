@@ -1,26 +1,20 @@
-"""
+lis"""
 Configuration settings for the FTR Draft Generator Agent.
 """
 
 import os
 from dotenv import load_dotenv
 
-# Load environment variables from .env file
+
 load_dotenv()
 
 
-# ==============================================================================
-# AWS Bedrock Configuration (default LLM provider for Strands)
+
 # ==============================================================================
 AWS_REGION = os.getenv("AWS_REGION", "us-east-1")
 AWS_PROFILE = os.getenv("AWS_PROFILE", None)
 
-# Default model for Strands Agent (Amazon Nova on Bedrock)
-# Available options:
-#   - amazon.nova-pro-v1:0    (Best capability - recommended)
-#   - amazon.nova-lite-v1:0   (Faster, lower cost)
-#   - amazon.nova-micro-v1:0  (Lightweight, text only)
-#   - meta.llama3-2-90b-instruct-v1:0  (Meta Llama 3.2 90B)
+
 BEDROCK_MODEL_ID = os.getenv(
     "BEDROCK_MODEL_ID", 
     "amazon.nova-pro-v1:0"
