@@ -33,4 +33,18 @@ build/
 # Output files
 output/
 *.docx
-*.xlsx
+ftr_assessments/
+
+# FTR Templates (keep the template file tracked)
+!_Foundational Technical Review for Service Offering Self-Assessment.xlsx
+
+# Debug and development scripts
+debug_*.py
+verify_*.py
+inspect_*.py
+
+# System crash dumps
+*.stackdump
+
+# FTR data files (PDF is documentation, keep it tracked)
+# src/data/*.json is generated, but track it for now
