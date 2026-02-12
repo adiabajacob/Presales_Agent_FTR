@@ -4,6 +4,7 @@ import shutil
 import openpyxl
 from datetime import datetime
 from strands.tools import tool
+from .recommendations import generate_remediation_plan
 
 TEMPLATE_PATH = "_Foundational Technical Review for Service Offering Self-Assessment.xlsx"
 OUTPUT_DIR = "ftr_assessments"
@@ -78,9 +79,17 @@ def generate_ftr_assessment(
                 sheet.cell(row=cell_id.row, column=idx_status).value = assessment.get('status', 'Not Met')
                 
                 # Update Evidence/Comments
+                status = assessment.get('status', 'Not Met')
                 evidence = assessment.get('evidence', '')
                 comments = assessment.get('comments', '')
+                
+                # Generate specific remediation steps if needed
+                remediation = generate_remediation_plan(cid, solution_name, status, evidence, comments)
+                
                 full_text = f"{comments}\n\nEvidence: {evidence}".strip()
+                
+                if remediation:
+                    full_text += f"\n\n{remediation}"
                 
                 sheet.cell(row=cell_id.row, column=idx_evidence).value = full_text
                 updated_count += 1

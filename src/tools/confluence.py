@@ -5,8 +5,48 @@ Confluence search tool for finding documentation related to APN solutions.
 import logging
 import uuid
 import boto3
+import json
 from strands.tools import tool
+from strands import Agent
 from ..mcp_client import create_atlassian_mcp_client
+from ..models import local_model
+
+
+
+def _refine_cql_query(solution_name: str, previous_cql: str, feedback: str, attempt: int) -> str:
+    """Ask the LLM to refine the CQL query based on previous failure."""
+    
+    prompt = f"""
+    I am searching Confluence for documentation about the solution: "{solution_name}".
+    
+    My previous CQL query was: `{previous_cql}`
+    
+    The results were:
+    {feedback}
+    
+    This was attempt #{attempt}. The results are not satisfactory (too few or irrelevant).
+    
+    Please generate a BETTER, REFINED CQL query to find relevant technical documentation.
+    Strategies to consider:
+    - If specific keywords notably failed, try broader terms.
+    - If the name is complex, try searching for just the core product name.
+    - Search for 'title' OR 'text' matches explicitly.
+    - Try looking for specific document types like "Architecture", "Guide", "Runbook".
+    
+    Output ONLY the raw CQL query string. Do not output markdown code blocks or explanations.
+    """
+    
+    try:
+        # Use a temporary lightweight agent for generation
+        refiner = Agent(model=local_model)
+        response = refiner.chat(prompt)
+        
+        # Clean up response
+        clean_cql = str(response).strip().replace('`', '').replace('cql', '')
+        return clean_cql
+    except Exception as e:
+        logging.error(f"Error refining query: {e}")
+        return previous_cql # Fallback
 
 
 @tool
@@ -177,9 +217,9 @@ def search_confluence_for_solutions(
 
             lines.append(f"\n    🔍 Using search tool: {confluence_search}")
             
-            # Step 4: Search for each solution
+            # Step 4: Search for each solution (Iterative Refinement)
             lines.append(f"\n{'─' * 80}")
-            lines.append(f"📄 CONFLUENCE SEARCH RESULTS:")
+            lines.append(f"📄 CONFLUENCE SEARCH RESULTS (Smart Refinement Enabled):")
             lines.append(f"{'─' * 80}\n")
             
             for sol in solutions:
@@ -189,90 +229,104 @@ def search_confluence_for_solutions(
                 if not sol_name:
                     continue
                 
-                # Dynamic Query Construction
+                lines.append(f"\n📦 Solution: {sol_name[:60]}...")
+                lines.append(f"   ID: {sol_id}")
+
+                # Initial Query Construction
                 if target_solution_name:
-                    # Strict search for targeted solution
-                    # Prioritize exact phrase matches in title or text
                     cql_query = f'title ~ "{sol_name}" OR text ~ "{sol_name}"'
                 else:
-                    # Broad heuristic search handling
                     search_words = [w for w in sol_name.split() 
                                    if len(w) > 3 and w.lower() not in ['with', 'and', 'the', 'for', 'aws']][:4]
                     search_query = " ".join(search_words)
                     cql_query = f'text ~ "{search_query}"'
                 
-                lines.append(f"\n📦 Solution: {sol_name[:60]}...")
-                lines.append(f"   ID: {sol_id}")
-                lines.append(f"   CQL query: {cql_query}")
+                # RETRY LOOP (Max 2 retries = 3 total attempts)
+                max_attempts = 3
+                found_good_results = False
                 
-                try:
-                    # Call the MCP search tool with required parameters
-                    tool_use_id = str(uuid.uuid4())
-                    
-                    args = {"cql": cql_query}
-                    if cloud_id:
-                        args["cloudId"] = cloud_id
+                for attempt in range(1, max_attempts + 1):
+                    if attempt > 1:
+                        lines.append(f"   🔄 Attempt {attempt}: Refining search query...")
                         
-                    result = mcp_client.call_tool_sync(
-                        name=confluence_search,
-                        tool_use_id=tool_use_id,
-                        arguments=args
-                    )
+                    lines.append(f"   🔍 CQL: {cql_query}")
                     
-                    # Parse result using helper
-                    result_text = get_content_text(result)
-                    
-                    if result_text:
-                        import json
-                        try:
-                            # Try to parse as JSON to extract links
-                            data = json.loads(result_text)
-                            results_list = data.get('results', [])
+                    try:
+                        # Call the MCP search tool
+                        tool_use_id = str(uuid.uuid4())
+                        args = {"cql": cql_query}
+                        if cloud_id: args["cloudId"] = cloud_id
                             
-                            if results_list:
-                                lines.append(f"   ✅ Found {len(results_list)} results:")
-                                for item in results_list:
-                                    # Handle simplified or nested structure
-                                    content = item.get('content', item) if 'content' in item else item
-                                    
-                                    title = content.get('title', 'Untitled')
-                                    links = content.get('_links', {})
-                                    webui = links.get('webui', '')
-                                    page_id = content.get('id', '')
-                                    
-                                    full_link = webui
-                                    if webui.startswith('/') and cloud_url:
-                                        base = cloud_url.rstrip('/')
-                                        # Heuristic: ensure we don't double /wiki if it's already there
-                                        if not webui.startswith('/wiki'):
-                                            full_link = f"{base}/wiki{webui}"
-                                        else:
-                                            full_link = f"{base}{webui}"
-                                    elif webui.startswith('/') and not cloud_url:
-                                         full_link = f"https://atlassian.net{webui} (Base URL missing)"
+                        result = mcp_client.call_tool_sync(
+                            name=confluence_search,
+                            tool_use_id=tool_use_id,
+                            arguments=args
+                        )
+                        
+                        # Parse result
+                        result_text = get_content_text(result)
+                        results_summary = "" # For LLM feedback
+                        results_count = 0
+                        
+                        if result_text:
+                            try:
+                                data = json.loads(result_text)
+                                results_list = data.get('results', [])
+                                results_count = len(results_list)
+                                
+                                if results_count > 0:
+                                    lines.append(f"   ✅ Found {results_count} results:")
+                                    for item in results_list:
+                                        content = item.get('content', item) if 'content' in item else item
+                                        title = content.get('title', 'Untitled')
+                                        links = content.get('_links', {})
+                                        webui = links.get('webui', '')
+                                        page_id = content.get('id', '')
+                                        
+                                        full_link = webui
+                                        if webui.startswith('/') and cloud_url:
+                                            base = cloud_url.rstrip('/')
+                                            if not webui.startswith('/wiki'):
+                                                full_link = f"{base}/wiki{webui}"
+                                            else:
+                                                full_link = f"{base}{webui}"
+                                        elif webui.startswith('/') and not cloud_url:
+                                             full_link = f"https://atlassian.net{webui} (Base URL missing)"
 
-                                    lines.append(f"      • [{title}]({full_link}) (ID: {page_id})")
-                            else:
-                                lines.append(f"      (No 'results' list in JSON response)")
-                                lines.append(f"      Raw: {result_text[:200]}...")
+                                        lines.append(f"      • [{title}]({full_link}) (ID: {page_id})")
+                                        results_summary += f"- {title}\n"
+                                    
+                                    # Heuristic for "Good Enough": > 0 results
+                                    # Could be stricter (e.g. > 2 results or title match)
+                                    found_good_results = True
+                                    break # Exit retry loop
+                                else:
+                                    lines.append(f"      (0 results found)")
+                                    results_summary = "No results found."
 
-                        except json.JSONDecodeError:
-                            # Fallback if text is not JSON
-                            lines.append(f"   ✅ Found results (Text):")
-                            if len(result_text) > 500:
-                                lines.append(f"      {result_text[:500]}...")
-                            else:
-                                lines.append(f"      {result_text}")
-                    else:
-                        # Fallback str conversion if not standard text content
-                        res_str = str(result)
-                        if "error" in res_str.lower():
-                            lines.append(f"   ⚠ Potential error in result: {res_str[:200]}")
+                            except json.JSONDecodeError:
+                                # Fallback text
+                                lines.append(f"   ✅ Found results (Text): {result_text[:200]}...")
+                                results_summary = f"Text result: {result_text[:500]}"
+                                found_good_results = True # Assume text is valid result
+                                break
                         else:
                             lines.append(f"   ⚠ No text content in results")
+                            results_summary = "No content returned from tool."
                             
-                except Exception as e:
-                    lines.append(f"   ❌ Search error: {str(e)[:100]}")
+                        # If we are here, results were poor. Check if we should retry.
+                        if attempt < max_attempts and not found_good_results:
+                            lines.append(f"   🤔 Results insufficient. Asking LLM to refine query...")
+                            new_cql = _refine_cql_query(sol_name, cql_query, results_summary, attempt)
+                            if new_cql and new_cql != cql_query:
+                                cql_query = new_cql
+                            else:
+                                lines.append("   ⚠️ Retrieval failed or same query generated. Stopping retries.")
+                                break
+                        
+                    except Exception as e:
+                        lines.append(f"   ❌ Search error: {str(e)[:100]}")
+                        break # Don't retry on exception for now
             
     except Exception as e:
         lines.append(f"\n    ❌ Could not connect to Atlassian MCP: {e}")
