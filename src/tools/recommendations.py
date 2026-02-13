@@ -81,7 +81,7 @@ def generate_remediation_plan(
     try:
         # Use a lightweight agent for generation
         advisor = Agent(model=local_model)
-        response = advisor.chat(prompt)
+        response = advisor(prompt)
         
         # Cleanup
         text = str(response).strip()

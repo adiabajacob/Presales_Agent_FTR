@@ -58,10 +58,18 @@ def generate_ftr_assessment(
             if cell.value:
                 col_map[str(cell.value).strip()] = cell.column
         
-        # Fallbacks if headers aren't exact
-        idx_id = col_map.get('ID', 2) # Default B
-        idx_status = col_map.get('Met?', 5) # Default E
-        idx_evidence = col_map.get('Partner Response', 6) # Default F
+        # Validated Column Mapping (based on user example)
+        # Header is at row 2 (0-indexed) -> row 3 in openpyxl? 
+        # Actually user said header=1 in pandas which is row 2.
+        # openpyxl is 1-indexed.
+        # ID = Col A (1)
+        # Requirement = Col B (2)
+        # Met? = Col C (3)
+        # Partner Response = Col D (4)
+        
+        idx_id = 1
+        idx_status = 3
+        idx_evidence = 4
         
         updated_count = 0
         

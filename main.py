@@ -157,13 +157,16 @@ def run_interactive_session():
         next_input = (
             f"Generate a preliminary FTR compliance draft for {sol_name} (ID: {sol_id}). "
             "Check against key FTR controls (e.g., SEC-1, REL-1). "
-            f"IMPORTANT: Use `search_confluence_for_solutions(target_solution_name='{sol_name}')` to find candidate documents. "
+            f"IMPORTANT: Use `search_confluence_for_solutions(target_solution_name='{sol_name}', keywords='Control Keyword')` to find candidate documents. "
+            "   - Try specific keywords first (e.g., 'SLA', 'Backup Policy').\n"
+            "   - If you find a broad document (e.g., 'Company Wide SLA'), you MUST read it to verify it applies to this solution.\n"
             "THEN, if a document title looks relevant but you need to confirm details (e.g., specific config values), use `read_confluence_page(page_id)` to verify. "
-            "List the status of each checked control. "
+            "List the status of each checked assessment. "
             "**CRITICAL INSTRUCTIONS:**\n"
-            "1. If you cannot find relevant documentation for a control, explicitly state 'No documentation found' and recommend creating it.\n"
+            "1. If you cannot find relevant documentation for a control AFTER searching broadly, explicitly state '❌ Not Met (Evidence Missing)'.\n"
             "2. **ALWAYS include the direct source URL** for any evidence found (the search tool provides these links). Format: [Document Title](URL).\n"
-            "3. DO NOT hallucinate or guess document names/links."
+            "3. DO NOT hallucinate or guess document names/links.\n"
+            "4. If evidence is missing, add a recommendation: 'Check if this documentation is held by the client or exists externally.'"
         )
         print(f"\n🚀 Auto-generating FTR Draft for '{sol_name}'...")
 

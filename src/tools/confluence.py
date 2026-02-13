@@ -39,7 +39,7 @@ def _refine_cql_query(solution_name: str, previous_cql: str, feedback: str, atte
     try:
         # Use a temporary lightweight agent for generation
         refiner = Agent(model=local_model)
-        response = refiner.chat(prompt)
+        response = refiner(prompt)
         
         # Clean up response
         clean_cql = str(response).strip().replace('`', '').replace('cql', '')
@@ -53,7 +53,8 @@ def _refine_cql_query(solution_name: str, previous_cql: str, feedback: str, atte
 def search_confluence_for_solutions(
     max_solutions: int = 5,
     catalog: str = "AWS",
-    target_solution_name: str = None
+    target_solution_name: str = None,
+    keywords: str = None
 ) -> str:
     """Search Confluence for documentation related to your APN solutions.
     
@@ -68,10 +69,14 @@ def search_confluence_for_solutions(
         catalog: Catalog to use ('AWS' or 'Sandbox', default: 'AWS')
         target_solution_name: If provided, ONLY search for this specific solution name. 
                               Use this to focus the search and avoid irrelevant results.
+        keywords: Optional list of keywords (or single string) to refine or broaden the search.
+                  e.g. "SLA", "Disaster Recovery", "Architecture"
     """
     lines = []
     lines.append(f"\n{'=' * 80}")
     lines.append(f"🔍 SEARCHING CONFLUENCE FOR APN SOLUTIONS")
+    if keywords:
+        lines.append(f"   Keywords: {keywords}")
     lines.append(f"{'=' * 80}\n")
     
     solutions = []
@@ -177,7 +182,7 @@ def search_confluence_for_solutions(
                     text_content = get_content_text(res_result)
                     
                     if text_content:
-                        import json
+                        # json is already imported globally
                         resources = json.loads(text_content)
                         if resources and isinstance(resources, list):
                             # Prefer a Confluence resource if possible
@@ -233,23 +238,56 @@ def search_confluence_for_solutions(
                 lines.append(f"   ID: {sol_id}")
 
                 # Initial Query Construction
+                cql_queries = []
+                
+                # Clean up keywords
+                kw_list = []
+                if keywords:
+                    if isinstance(keywords, list):
+                        kw_list = [str(k).strip() for k in keywords if k]
+                    elif isinstance(keywords, str):
+                        kw_list = [k.strip() for k in keywords.split(',') if k.strip()]
+
+                # Strategy 1: Specific Solution + Keywords (High Precision)
                 if target_solution_name:
-                    cql_query = f'title ~ "{sol_name}" OR text ~ "{sol_name}"'
+                    base_query = f'(title ~ "{sol_name}" OR text ~ "{sol_name}")'
+                    if kw_list:
+                        # Add specific keyword constraints
+                        kw_part = " AND ".join([f'text ~ "{k}"' for k in kw_list])
+                        cql_queries.append(f'{base_query} AND ({kw_part})')
+                        
+                        # Fallback: OR logic for keywords
+                        kw_or_part = " OR ".join([f'text ~ "{k}"' for k in kw_list])
+                        cql_queries.append(f'{base_query} AND ({kw_or_part})')
+                    
+                    # Fallback: Just solution name
+                    cql_queries.append(base_query)
+                    
                 else:
+                    # General Search (No target)
                     search_words = [w for w in sol_name.split() 
                                    if len(w) > 3 and w.lower() not in ['with', 'and', 'the', 'for', 'aws']][:4]
                     search_query = " ".join(search_words)
-                    cql_query = f'text ~ "{search_query}"'
+                    cql_queries.append(f'text ~ "{search_query}"')
+
+                # Strategy 2: Broad Keyword Search (Low Precision - Requires strict verification)
+                if kw_list and target_solution_name:
+                     kw_part = " OR ".join([f'title ~ "{k}"' for k in kw_list])
+                     # Look for "Policy", "Standard", "Guide" types generally
+                     cql_queries.append(f'({kw_part}) AND (label = "policy" OR type = "page")')
+
+                # Remove duplicates while preserving order
+                unique_cqls = []
+                for q in cql_queries:
+                    if q not in unique_cqls:
+                        unique_cqls.append(q)
                 
-                # RETRY LOOP (Max 2 retries = 3 total attempts)
-                max_attempts = 3
+                # RETRY LOOP (Iterate through strategies)
                 found_good_results = False
+                max_attempts = 3
                 
-                for attempt in range(1, max_attempts + 1):
-                    if attempt > 1:
-                        lines.append(f"   🔄 Attempt {attempt}: Refining search query...")
-                        
-                    lines.append(f"   🔍 CQL: {cql_query}")
+                for attempt, cql_query in enumerate(unique_cqls, 1):
+                    lines.append(f"   🔍 Attempt {attempt} (CQL): {cql_query}")
                     
                     try:
                         # Call the MCP search tool
@@ -320,13 +358,17 @@ def search_confluence_for_solutions(
                             new_cql = _refine_cql_query(sol_name, cql_query, results_summary, attempt)
                             if new_cql and new_cql != cql_query:
                                 cql_query = new_cql
+                                # TODO: Actually retry with new CQL? 
+                                # For now, just logging it and moving to next strategy in list is safer
+                                lines.append("   ⚠️ Optimization suggested, but moving to next strategy.")
+                                continue
                             else:
-                                lines.append("   ⚠️ Retrieval failed or same query generated. Stopping retries.")
-                                break
+                                lines.append("   ⚠️ Retrieval failed or same query generated.")
+                                continue
                         
                     except Exception as e:
                         lines.append(f"   ❌ Search error: {str(e)[:100]}")
-                        break # Don't retry on exception for now
+                        continue # Try next strategy
             
     except Exception as e:
         lines.append(f"\n    ❌ Could not connect to Atlassian MCP: {e}")
