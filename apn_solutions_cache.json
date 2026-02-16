@@ -1,0 +1,175 @@
+{
+  "solutions": [
+    {
+      "Catalog": "AWS",
+      "Id": "S-0090323",
+      "Arn": "arn:aws:partnercentral:us-east-1:980921735402:catalog/AWS/solution/S-0090323",
+      "Name": "Financial services ETL Pipeline",
+      "Status": "Active",
+      "Category": "Consulting Service",
+      "CreatedDate": "2026-02-13 14:48:12+00:00"
+    },
+    {
+      "Catalog": "AWS",
+      "Id": "S-0090318",
+      "Arn": "arn:aws:partnercentral:us-east-1:980921735402:catalog/AWS/solution/S-0090318",
+      "Name": "ERP Assesmnent",
+      "Status": "Active",
+      "Category": "Professional Service",
+      "CreatedDate": "2026-02-13 13:41:25+00:00"
+    },
+    {
+      "Catalog": "AWS",
+      "Id": "S-0085976",
+      "Arn": "arn:aws:partnercentral:us-east-1:980921735402:catalog/AWS/solution/S-0085976",
+      "Name": "AWS Well-Architected Framework Review (WAFR)",
+      "Status": "Active",
+      "Category": "Consulting Service",
+      "CreatedDate": "2025-11-10 12:04:35+00:00"
+    },
+    {
+      "Catalog": "AWS",
+      "Id": "S-0085797",
+      "Arn": "arn:aws:partnercentral:us-east-1:980921735402:catalog/AWS/solution/S-0085797",
+      "Name": "Replace Storyblok Translations with Amazon Translate (Glossaries + Batch Pipelines)",
+      "Status": "Active",
+      "Category": "Professional Service",
+      "CreatedDate": "2025-11-06 00:55:56+00:00"
+    },
+    {
+      "Catalog": "AWS",
+      "Id": "S-0085796",
+      "Arn": "arn:aws:partnercentral:us-east-1:980921735402:catalog/AWS/solution/S-0085796",
+      "Name": "Migrate NLP from Azure to AWS Translate and Comprehend with S3 Lake + Lambda Batch",
+      "Status": "Active",
+      "Category": "Professional Service",
+      "CreatedDate": "2025-11-06 00:40:43+00:00"
+    },
+    {
+      "Catalog": "AWS",
+      "Id": "S-0085795",
+      "Arn": "arn:aws:partnercentral:us-east-1:980921735402:catalog/AWS/solution/S-0085795",
+      "Name": "Migrate Azure Chatbot to Amazon Bedrock with Lambda and CloudWatch",
+      "Status": "Active",
+      "Category": "Professional Service",
+      "CreatedDate": "2025-11-06 00:38:29+00:00"
+    },
+    {
+      "Catalog": "AWS",
+      "Id": "S-0085763",
+      "Arn": "arn:aws:partnercentral:us-east-1:980921735402:catalog/AWS/solution/S-0085763",
+      "Name": "Serverless Frontend (S3 + CloudFront, AWS Standard)",
+      "Status": "Active",
+      "Category": "Professional Service",
+      "CreatedDate": "2025-11-05 13:01:12+00:00"
+    },
+    {
+      "Catalog": "AWS",
+      "Id": "S-0085401",
+      "Arn": "arn:aws:partnercentral:us-east-1:980921735402:catalog/AWS/solution/S-0085401",
+      "Name": "Digitalization Certificate of Analysis",
+      "Status": "Active",
+      "Category": "Professional Service",
+      "CreatedDate": "2025-10-30 11:32:02+00:00"
+    },
+    {
+      "Catalog": "AWS",
+      "Id": "S-0085122",
+      "Arn": "arn:aws:partnercentral:us-east-1:980921735402:catalog/AWS/solution/S-0085122",
+      "Name": "On-Premises to AWS Cloud Migration with Automated Landing Zone, Modernization, and Cost Optimization",
+      "Status": "Active",
+      "Category": "Professional Service",
+      "CreatedDate": "2025-10-27 12:49:33+00:00"
+    },
+    {
+      "Catalog": "AWS",
+      "Id": "S-0084632",
+      "Arn": "arn:aws:partnercentral:us-east-1:980921735402:catalog/AWS/solution/S-0084632",
+      "Name": "Replatform Environment on EKS with GitOps and Infrastructure as Code (IaC)",
+      "Status": "Active",
+      "Category": "Consulting Service",
+      "CreatedDate": "2025-10-17 11:50:09+00:00"
+    },
+    {
+      "Catalog": "AWS",
+      "Id": "S-0084631",
+      "Arn": "arn:aws:partnercentral:us-east-1:980921735402:catalog/AWS/solution/S-0084631",
+      "Name": "Highly Available EKS Microservices Architecture with Multi-AZ RDS, Autoscaling, and WAF/CDN Integration",
+      "Status": "Active",
+      "Category": "Professional Service",
+      "CreatedDate": "2025-10-17 11:46:10+00:00"
+    },
+    {
+      "Catalog": "AWS",
+      "Id": "S-0084630",
+      "Arn": "arn:aws:partnercentral:us-east-1:980921735402:catalog/AWS/solution/S-0084630",
+      "Name": "Rightsizing and Autoscaling Optimization with Load Testing for Demand-Based Capacity",
+      "Status": "Active",
+      "Category": "Consulting Service",
+      "CreatedDate": "2025-10-17 11:44:33+00:00"
+    },
+    {
+      "Catalog": "AWS",
+      "Id": "S-0084629",
+      "Arn": "arn:aws:partnercentral:us-east-1:980921735402:catalog/AWS/solution/S-0084629",
+      "Name": "Pre-Production Environment Deployment with EKS, RDS, CI/CD Integration, and Unified Security",
+      "Status": "Active",
+      "Category": "Managed Service",
+      "CreatedDate": "2025-10-17 11:42:00+00:00"
+    },
+    {
+      "Catalog": "AWS",
+      "Id": "S-0084628",
+      "Arn": "arn:aws:partnercentral:us-east-1:980921735402:catalog/AWS/solution/S-0084628",
+      "Name": "AWS Multi-Account Consolidation with Centralized Networking, Observability, and Cost Governance",
+      "Status": "Active",
+      "Category": "Professional Service",
+      "CreatedDate": "2025-10-17 11:40:35+00:00"
+    },
+    {
+      "Catalog": "AWS",
+      "Id": "S-0084627",
+      "Arn": "arn:aws:partnercentral:us-east-1:980921735402:catalog/AWS/solution/S-0084627",
+      "Name": "Cost optimized logging",
+      "Status": "Active",
+      "Category": "Consulting Service",
+      "CreatedDate": "2025-10-17 11:36:47+00:00"
+    },
+    {
+      "Catalog": "AWS",
+      "Id": "S-0079377",
+      "Arn": "arn:aws:partnercentral:us-east-1:980921735402:catalog/AWS/solution/S-0079377",
+      "Name": "Backup O365 to AWS S3 with veeam",
+      "Status": "Active",
+      "Category": "Professional Service",
+      "CreatedDate": "2025-07-24 12:38:29+00:00"
+    },
+    {
+      "Catalog": "AWS",
+      "Id": "S-0079369",
+      "Arn": "arn:aws:partnercentral:us-east-1:980921735402:catalog/AWS/solution/S-0079369",
+      "Name": "Platform for certification in the chemical industry",
+      "Status": "Active",
+      "Category": "Professional Service",
+      "CreatedDate": "2025-07-24 10:21:23+00:00"
+    },
+    {
+      "Catalog": "AWS",
+      "Id": "S-0079360",
+      "Arn": "arn:aws:partnercentral:us-east-1:980921735402:catalog/AWS/solution/S-0079360",
+      "Name": "OLA - Migration to AWS",
+      "Status": "Active",
+      "Category": "Professional Service",
+      "CreatedDate": "2025-07-24 09:08:52+00:00"
+    },
+    {
+      "Catalog": "AWS",
+      "Id": "S-0071049",
+      "Arn": "arn:aws:partnercentral:us-east-1:980921735402:catalog/AWS/solution/S-0071049",
+      "Name": "Software Optimization and Modernisation",
+      "Status": "Active",
+      "Category": "Consulting Service",
+      "CreatedDate": "2025-03-11 15:45:23+00:00"
+    }
+  ]
+}

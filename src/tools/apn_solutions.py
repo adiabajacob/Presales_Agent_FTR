@@ -33,7 +33,7 @@ def _save_cache(solutions: list):
     """Save solutions to local JSON cache."""
     try:
         with open(CACHE_FILE, 'w', encoding='utf-8') as f:
-            json.dump({"solutions": solutions}, f, indent=2)
+            json.dump({"solutions": solutions}, f, indent=2, default=str)
     except Exception as e:
         logging.error(f"Error saving cache: {e}")
 
