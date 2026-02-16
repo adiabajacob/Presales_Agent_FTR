@@ -54,22 +54,73 @@ def get_solutions_interactive():
         else:
             pc_client = boto3.client("partnercentral-selling")
         
-        sol_response = pc_client.list_solutions(Catalog="AWS", MaxResults=20)
-        solutions = sol_response.get("SolutionSummaries", [])
+        # Try loading from cache first (simulated by calling tool with refresh_cache=False)
+        # We need to manually invoke the logic or just use the tool function directly if possible.
+        # Since we are in main, let's use the tool function but validly.
+        # Actually, get_apn_solutions returns a string representation.
+        # For the interactive menu, we want the raw list.
+        # So we should expose _load_cache from apn_solutions or duplicate logic?
+        # Better: Import _load_cache and _save_cache (if needed) or add a helper in apn_solutions
+        
+        # Let's import the tool function and the cache loader
+        from src.tools.apn_solutions import _load_cache, get_apn_solutions
+        
+        solutions = _load_cache()
+        loaded_from_cache = True
+        
+        if not solutions:
+            print("   (Cache empty, fetching from AWS...)")
+            # We can reuse the tool's internal logic or call the tool string output?
+            # The tool output is text. We want the OBJECTS.
+            # Rearchitecting slightly: get_apn_solutions should probably return objects if called programmatically?
+            # Or we just duplicate the fetch logic here for the interactive part?
+            # The original code here duplicated the fetch logic. Let's keep doing that but save to cache.
+            
+            # ... (Existing Fetch Logic) ...
+            sol_response = pc_client.list_solutions(Catalog="AWS", MaxResults=20)
+            solutions = sol_response.get("SolutionSummaries", [])
+            loaded_from_cache = False
+            
+            if solutions:
+                from src.tools.apn_solutions import _save_cache
+                _save_cache(solutions)
 
         if not solutions:
-            print("❌ No solutions found using AWS Partner Central.")
+            print("❌ No solutions found (Checked Cache & AWS).")
             return None
 
-        print(f"\n📦 Found {len(solutions)} Registered Solutions:")
+        src_msg = "Local Cache 💾" if loaded_from_cache else "AWS Partner Central ☁"
+        print(f"\n📦 Found {len(solutions)} Solutions (Source: {src_msg}):")
         for idx, sol in enumerate(solutions, 1):
             print(f"   [{idx}] {sol.get('Name', 'Unnamed')} (ID: {sol.get('Id')})")
 
         print("\n   [0] Skip selection (General FTR Chat)")
+        print("   [R] Refresh Solutions from AWS")
         
         while True:
             try:
-                choice = input("\n👉 Select a solution to focus on (enter number): ").strip()
+                choice = input("\n👉 Select a solution (or 'R' to refresh): ").strip()
+                
+                if choice.upper() == "R":
+                    print("\n🔄 Refreshing from AWS...")
+                    sol_response = pc_client.list_solutions(Catalog="AWS", MaxResults=20)
+                    solutions = sol_response.get("SolutionSummaries", [])
+                    if solutions:
+                        from src.tools.apn_solutions import _save_cache
+                        _save_cache(solutions)
+                        loaded_from_cache = False
+                        print(f"✅ Refreshed! Found {len(solutions)} solutions.")
+                        # Reprint list
+                        print(f"\n📦 Found {len(solutions)} Solutions (Source: AWS Partner Central ☁):")
+                        for idx, sol in enumerate(solutions, 1):
+                            print(f"   [{idx}] {sol.get('Name', 'Unnamed')} (ID: {sol.get('Id')})")
+                        print("\n   [0] Skip selection")
+                        print("   [R] Refresh Solutions")
+                        continue
+                    else:
+                        print("❌ No solutions found in AWS.")
+                        continue
+
                 if choice == "0":
                     return None
                 
@@ -79,7 +130,7 @@ def get_solutions_interactive():
                 else:
                     print(f"   ⚠ Please enter a number between 0 and {len(solutions)}")
             except ValueError:
-                print("   ⚠ Invalid input. Please enter a number.")
+                print("   ⚠ Invalid input. Please enter a number or 'R'.")
                 
     except Exception as e:
         print(f"❌ Error fetching solutions: {e}")

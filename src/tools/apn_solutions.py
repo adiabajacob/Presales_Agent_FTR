@@ -13,6 +13,29 @@ from src.config import (
     APN_AWS_SESSION_TOKEN,
     APN_AWS_REGION
 ) # Ensure import is updated
+import json
+import os
+
+CACHE_FILE = "apn_solutions_cache.json"
+
+def _load_cache() -> list:
+    """Load solutions from local JSON cache."""
+    if os.path.exists(CACHE_FILE):
+        try:
+            with open(CACHE_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                return data.get("solutions", [])
+        except Exception as e:
+            logging.error(f"Error loading cache: {e}")
+    return []
+
+def _save_cache(solutions: list):
+    """Save solutions to local JSON cache."""
+    try:
+        with open(CACHE_FILE, 'w', encoding='utf-8') as f:
+            json.dump({"solutions": solutions}, f, indent=2)
+    except Exception as e:
+        logging.error(f"Error saving cache: {e}")
 
 @tool
 def get_apn_solutions(
@@ -22,7 +45,8 @@ def get_apn_solutions(
     statuses: list = None,
     keywords: str = "",
     pillar: str = "",
-    show_all_fields: bool = True
+    show_all_fields: bool = True,
+    refresh_cache: bool = False
 ) -> str:
     """Retrieve your organization's registered AWS Partner Solutions from Partner Central.
     
@@ -55,6 +79,59 @@ def get_apn_solutions(
         else:
             client = boto3.client("partnercentral-selling")
 
+        # CACHE LOGIC
+        solutions = []
+        loaded_from_cache = False
+        
+        if not refresh_cache:
+            solutions = _load_cache()
+            if solutions:
+                loaded_from_cache = True
+        
+        if not solutions and not loaded_from_cache:
+            if pillar and not categories:
+                pillar = pillar.lower().strip()
+                pillar_to_categories = {
+                    "security": ["Security", "Identity & Access Management", "Encryption"],
+                    "reliability": ["Resilience", "Disaster Recovery", "Compute", "Storage"],
+                    "operational excellence": ["Management & Governance", "Monitoring", "Automation"],
+                    "performance efficiency": ["Compute", "Database", "Networking"],
+                    "cost optimization": ["Cost Management", "FinOps"],
+                    "sustainability": ["Sustainability"],
+                }
+                categories = pillar_to_categories.get(pillar, [])
+
+            params = {
+                "Catalog": catalog,
+                "MaxResults": min(100, max_results * 2),
+            }
+            if categories:
+                params["Category"] = categories
+            if statuses:
+                params["Status"] = statuses
+
+            solutions = []
+            next_token = None
+
+            while True:
+                if next_token:
+                    params["NextToken"] = next_token
+
+                response = client.list_solutions(**params)
+                new_solutions = response.get("SolutionSummaries", [])
+                solutions.extend(new_solutions)
+
+                next_token = response.get("NextToken")
+                if not next_token or len(solutions) >= max_results * 3:
+                    break
+        
+        # Save to cache if we fetched fresh data
+        if not loaded_from_cache and solutions:
+            _save_cache(solutions)
+
+        # In-Memory Filtering (Common for both API and Cache paths)
+             
+        # Re-apply pillar filter logic if we used cache, or refined it
         if pillar and not categories:
             pillar = pillar.lower().strip()
             pillar_to_categories = {
@@ -67,29 +144,29 @@ def get_apn_solutions(
             }
             categories = pillar_to_categories.get(pillar, [])
 
-        params = {
-            "Catalog": catalog,
-            "MaxResults": min(100, max_results * 2),
-        }
+        # Filter by Category
         if categories:
-            params["Category"] = categories
+            # Handle API-style filtering manually for cached data
+            filtered_cats = []
+            for sol in solutions:
+                # Normalizing: API returns "Category" (list or string?)
+                # Actually API uses "Category" param to filter.
+                # Here we simulate it.
+                sol_cats = sol.get("Category", [])
+                if isinstance(sol_cats, str): sol_cats = [sol_cats]
+                
+                # Check intersection
+                if any(c in sol_cats for c in categories):
+                    filtered_cats.append(sol)
+            solutions = filtered_cats
+
+        # Filter by Status
         if statuses:
-            params["Status"] = statuses
-
-        solutions = []
-        next_token = None
-
-        while True:
-            if next_token:
-                params["NextToken"] = next_token
-
-            response = client.list_solutions(**params)
-            new_solutions = response.get("SolutionSummaries", [])
-            solutions.extend(new_solutions)
-
-            next_token = response.get("NextToken")
-            if not next_token or len(solutions) >= max_results * 3:
-                break
+             filtered_stats = []
+             for sol in solutions:
+                 if sol.get("Status") in statuses:
+                     filtered_stats.append(sol)
+             solutions = filtered_stats
 
         if keywords:
             keywords = keywords.lower().split()
@@ -138,6 +215,9 @@ def get_apn_solutions(
             # Format solution header
             lines.append(f"\n{'=' * 80}")
             lines.append(f"[{idx}] {name}")
+            lines.append(f"[{idx}] {name}")
+            if loaded_from_cache:
+                lines.append(f"(Loaded from Cache)")
             lines.append(f"{'=' * 80}")
             lines.append(f"Status: {status} | Catalog: {catalog_val}")
             lines.append(f"ID: {sol_id}")
